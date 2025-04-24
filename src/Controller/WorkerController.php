@@ -15,15 +15,26 @@ final class WorkerController extends AbstractController
     public function createWorker(Request $request,workerService $workerService): JsonResponse
     {
         $data = json_decode($request->getContent(), true);
+
+        if (!isset($data['imię'], $data['nazwisko'])) {
+            return $this->json(['error' => 'Brakuje danych'], 400);
+        }
+
         $name = $data['imię'] ?? '';
         $surname = $data['nazwisko'] ?? '';
+        try {
+            $worker = $workerService->createWorker($name, $surname);
 
-        $worker = $workerService->createWorker($name, $surname);
+            return new JsonResponse([
+                'response' => [
+                    'id' => $worker->getId()
+                ]
+            ]);
+        } catch (\InvalidArgumentException $e) {
+            return $this->json(['error' => $e->getMessage()], 400);
 
-        return new JsonResponse([
-            'response' => [
-                'id' => $worker->getId()
-            ]
-        ]);
+        } catch (\RuntimeException $e) {
+            return $this->json(['error' => $e->getMessage()], 404);
+        }
     }
 }
