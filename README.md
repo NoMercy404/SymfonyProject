@@ -1,63 +1,101 @@
-Instrukcja zadania:
-1. Parametry konfiguracyjne systemu czasu pracy (sposób przechowywania
-parametrów jest dowolny):
-  a. norma miesięczna godzin - 40
-  b. stawka - 20 PLN
-  c. stawka nadgodzinowa - 200% stawki
-    i. liczone po przekroczeniu normy miesięcznej
+# Instrukcja zadania – HIS-System – Moduł Czasu Pracy
 
-2. Encja Pracownik
-  a. unikalny identyfikator - uuid
-  b. imię i nazwisko
+## 1. Parametry konfiguracyjne systemu czasu pracy
 
-3. Encja Czas pracy
-  a. relacja z pracownikiem
-  b. data i godzina rozpoczęcia - datetime
-  c. data i godzina zakończenia - datetime
-  d. dzień rozpoczęcia - date
-    i. na podstawie tego pola będziemy określać z jakiego dnia są godziny
-      niezależnie od daty zakończenia,
-    ii. np. jeśli zostanie zarejestrowany przedział 01.01.1970 08:00 -
-      01.01.1970 14:00, wtedy pole “dzień rozpoczęcia” powinno zawierać
-      dzień z daty rozpoczęcia tj. “01.01.1970”
+> Sposób przechowywania parametrów jest dowolny (np. plik konfiguracyjny, tabela w bazie danych).
 
-4. Pola wymienione są wymagane, natomiast każdą encję można rozszerzać zgodnie z
-własnym upodobaniem/doświadczeniem o dodatkowe pola, jeśli uzna się to za
-stosowne. Jeśli typ danych nie został określony wyżej, może wtedy zostać wybrany
-również w oparciu o doświadczenie.
+- **Norma miesięczna godzin:** `40`
+- **Stawka godzinowa:** `20 PLN`
+- **Stawka nadgodzinowa:** `200% stawki`
+  - Nadgodziny są liczone **po przekroczeniu normy miesięcznej**
 
-5. Endpoint: (tworzenie użytkownika)
-  a. tworzy pracownika
-  b. zwraca unikalny identyfikator
+---
 
-6. Endpoint: (rejestracja czasu pracy)
-  a. Przyjmuje dane:
-    i. unikalny identyfikator pracownika
-    ii. data i godzina rozpoczęcia
-    iii. data i godzina zakończenia
-  b. Zwraca odpowiedź:
-    i. jeśli sukces, ”Czas pracy został dodany!”
-    ii. jeśli niepowodzenie, to odpowiedni komunikat błędu.
-  c. Sprawdzenie poprawności podanego czasu pracy
-    i. Pracownik może posiadać tylko 1 przedział z tym samym dniem
-      rozpoczęcia
-    ii. Pracownik nie może zarejestrować więcej niż 12 godzin w jednym
-      przedziale
-   
-7. Endpointy: (podsumowanie czasu pracy dzień/miesiąc)
-  a. Przyjmuje dane:
-    i. Unikalny identyfikator pracownika
-    ii. data w formacie (‘YYYY-MM’ lub ‘YYYY-MM-DD’)
-  b. Zwraca odpowiedź:
-    i. jeśli sukces,
-      1. to otrzymujemy podsumowanie w przedstawionej postaci,
-        ilości godzin w podanej dacie oraz wartość wypracowanych
-        godzin z odpowiednim uwzględnieniem stawek oraz podziałem
-        na godziny standardowe i nadgodziny
-      2. czas pracy zaokrąglamy do 30 minut, np.
-        a. 8:10 = 8 godz.
-        b. 8:17 = 8,5 godz.
-        c. 8:35 = 8,5 godz.
-        d. 8:48 = 9 godz.
+## 2. Encja: `Pracownik`
 
-    ii. jeśli niepowodzenie, to odpowiedni komunikat błędu.
+| Pole                | Typ danych | Opis                      |
+|---------------------|------------|---------------------------|
+| `id`                | `UUID`     | Unikalny identyfikator    |
+| `imie_nazwisko`     | `string`   | Imię i nazwisko pracownika |
+
+---
+
+## 3. Encja: `CzasPracy`
+
+| Pole                 | Typ danych | Opis |
+|----------------------|------------|------|
+| `pracownik_id`       | `UUID`     | Relacja do pracownika |
+| `data_rozpoczecia`   | `datetime` | Data i godzina rozpoczęcia pracy |
+| `data_zakonczenia`   | `datetime` | Data i godzina zakończenia pracy |
+| `dzien_rozpoczecia`  | `date`     | Dzień pracy, ustalany na podstawie `data_rozpoczecia` |
+
+> Przykład:  
+> Jeśli pracownik zarejestrował przedział **01.01.1970 08:00 – 01.01.1970 14:00**,  
+> to pole `dzien_rozpoczecia` powinno zawierać wartość **"1970-01-01"**  
+> (czyli **zawsze data z początku pracy**).
+
+---
+
+## 4. Zasady projektowe
+
+- Wszystkie wymienione pola są **wymagane**
+- Encje mogą być rozszerzane o dodatkowe pola zgodnie z doświadczeniem lub potrzebą
+- Typy danych nieokreślone w zadaniu można dobrać według uznania
+
+---
+
+## 5. Endpoint: **Tworzenie pracownika**
+
+- **Metoda:** `POST`
+- **Opis:** Tworzy nowego pracownika
+- **Odpowiedź:** Zwraca `UUID` nowo utworzonego pracownika
+
+---
+
+## 6. Endpoint: **Rejestracja czasu pracy**
+
+- **Metoda:** `POST`
+- **Dane wejściowe:**
+  - `pracownik_id` (UUID)
+  - `data_rozpoczecia` (datetime)
+  - `data_zakonczenia` (datetime)
+
+- **Walidacja:**
+  - Pracownik **może mieć tylko jeden przedział czasowy** z tym samym `dzien_rozpoczecia`
+  - Maksymalny dozwolony czas jednego przedziału: **12 godzin**
+
+- **Odpowiedź:**
+  - Jeśli sukces: `Czas pracy został dodany!`
+  - W przypadku błędu: odpowiedni komunikat z informacją o przyczynie
+
+---
+
+## 7. Endpoint: **Podsumowanie czasu pracy (dzień/miesiąc)**
+
+- **Metoda:** `GET`
+- **Dane wejściowe:**
+  - `pracownik_id` (UUID)
+  - `data` (w formacie `YYYY-MM` lub `YYYY-MM-DD`)
+
+- **Odpowiedź:**
+  - **Sukces:**
+    - Ilość przepracowanych godzin w podanym zakresie
+    - Wartość wypracowanych godzin (stawka * czas)
+    - Podział:
+      - godziny standardowe
+      - nadgodziny (liczone po przekroczeniu normy)
+  - **Zaokrąglenie czasu pracy:** do **najbliższych 30 minut**
+    - Przykłady:
+      - `8:10` → `8.0 godz.`
+      - `8:17` → `8.5 godz.`
+      - `8:35` → `8.5 godz.`
+      - `8:48` → `9.0 godz.`
+
+  - **Niepowodzenie:** odpowiedni komunikat błędu
+
+---
+
+## Uwagi dodatkowe
+
+- Możesz zaimplementować system logowania oraz podstawową autoryzację (np. JWT lub session-based).
+- Dobrym rozszerzeniem może być dashboard dla użytkownika z wizualizacją danych (np. wykres godzin z Chart.js).
