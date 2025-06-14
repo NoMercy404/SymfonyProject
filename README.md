@@ -94,8 +94,3 @@
   - **Niepowodzenie:** odpowiedni komunikat błędu
 
 ---
-
-## Uwagi dodatkowe
-
-- Możesz zaimplementować system logowania oraz podstawową autoryzację (np. JWT lub session-based).
-- Dobrym rozszerzeniem może być dashboard dla użytkownika z wizualizacją danych (np. wykres godzin z Chart.js).
